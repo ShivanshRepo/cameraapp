@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera App</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            transition: background-color 0.5s ease, color 0.5s ease;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #333;
+            color: white;
+        }
+
+        header img {
+            height: 50px;
+            margin-right: 20px;
+        }
+
+        header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        .theme-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .theme-switch input {
+            display: none;
+        }
+
+        .theme-switch label {
+            cursor: pointer;
+            width: 50px;
+            height: 25px;
+            background: #ff4d4d;
+            display: inline-block;
+            border-radius: 25px;
+            position: relative;
+            transition: background-color 0.3s;
+        }
+
+        .theme-switch label::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2.5px;
+            left: 2.5px;
+            transition: transform 0.3s;
+        }
+
+        .theme-switch input:checked + label {
+            background: #555;
+        }
+
+        .theme-switch input:checked + label::before {
+            transform: translateX(25px);
+        }
+
+        video, canvas {
+            display: block;
+            margin: 20px auto;
+            width: 100%;
+            max-width: 600px;
+            border: 2px solid #333;
+            border-radius: 10px;
+        }
+
+        select, button {
+            margin: 10px;
+            padding: 15px 20px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 16px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        select:hover, button:hover {
+            background-color: #0056b3;
+        }
+
+        select:focus, button:focus {
+            outline: none;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .buttons {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .image-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #captured-image {
+            display: none;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            border-radius: 5px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; 
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        #notification {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: green;
+            color: white;
+        }
+
+        #error-notification {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: red;
+            color: white;
+        }
+
+        .spinner {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <img src="https://media.licdn.com/dms/image/v2/D4E0BAQHrIyFNvHS6Uw/company-logo_200_200/company-logo_200_200/0/1716388167511/doss_in_logo?e=2147483647&v=beta&t=RxfPzjPbrsrRhwza2qnnHgPPNshwfGzvRNpSVMH3Vuo" alt="DOSS Logo"/>
+        <h1>DOSS</h1>
+    </header>
+<br><br/>
+<h2 style="text-align: center;font-size: 3em; font-weight: bold;">Camera Application</h2>
+
+    
+<div class="theme-controls">
+    <label style="text-align: center;font-size: 1.5em; font-weight: bold;" for="bg-color-picker">Choose Background Color:</label>
+    <input type="color" id="bg-color-picker" value="#f4f4f9">
+</div>
+
+<script>
+    const bgColorPicker = document.getElementById('bg-color-picker');
+
+    // Event listener to change the background color when a new color is selected
+    bgColorPicker.addEventListener('input', (event) => {
+        document.body.style.backgroundColor = event.target.value;
+    });
+</script>
+
+    <video autoplay></video>
+
+    <div class="buttons">
+        <div class="tooltip">
+            <select id="filter">
+                <option value="none">None</option>
+                <option value="grayscale(100%)">Grayscale</option>
+                <option value="sepia(100%)">Sepia</option>
+                <option value="blur(5px)">Blur</option>
+            </select>
+            <div class="tooltiptext">Choose a filter</div>
+        </div>
+
+        <div class="tooltip">
+            <button id="capture">Capture</button>
+            <div class="tooltiptext">Capture the image</div>
+        </div>
+
+        <div class="tooltip">
+            <button id="upload" disabled>Upload to S3</button>
+            <div class="tooltiptext">Upload the image</div>
+        </div>
+    </div>
+
+    <div class="image-container">
+        <h2>Captured Image</h2>
+        <canvas id="captured-image" width="600" height="400"></canvas>
+    </div>
+
+    <div id="notification">Image uploaded successfully!</div>
+    <div id="error-notification">Error uploading image!</div>
+    <div class="spinner" id="loading-spinner"></div>
+
+    <script>
+        const video = document.querySelector('video');
+        const captureButton = document.getElementById('capture');
+        const uploadButton = document.getElementById('upload');
+        const filterSelect = document.getElementById('filter');
+        const canvas = document.getElementById('captured-image');
+        const context = canvas.getContext('2d');
+        const notification = document.getElementById('notification');
+        const errorNotification = document.getElementById('error-notification');
+        const spinner = document.getElementById('loading-spinner');
+        let capturedBlob = null;
+
+        // Start the camera stream
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                    video.play();
+                })
+                .catch(error => {
+                    console.error("Error accessing the camera:", error);
+                    alert("Unable to access the camera. Please check your browser settings.");
+                });
+        }
+
+        // Apply filter on video
+        filterSelect.addEventListener('change', (event) => {
+            video.style.filter = event.target.value;
+        });
+
+        // Capture button action to take a snapshot
+        captureButton.addEventListener('click', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.filter = filterSelect.value;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.style.display = 'block';
+            canvas.toBlob(blob => {
+                capturedBlob = blob;
+                uploadButton.disabled = false;
+            }, 'image/png');
+        });
+
+        // Upload button action to upload the captured image to S3
+        uploadButton.addEventListener('click', () => {
+            if (capturedBlob) {
+                spinner.style.display = 'block'; // Show spinner during upload
+                const fileName = `snapshot_${Date.now()}.png`;
+                const file = new File([capturedBlob], fileName, { type: "image/png" });
+                const formData = new FormData();
+                formData.append('image', file);
+
+                fetch('http://127.0.0.1:5000/upload', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => {
+                    spinner.style.display = 'none'; // Hide spinner after upload
+                    if (response.ok) {
+                        notification.style.display = 'block';
+                        setTimeout(() => notification.style.display = 'none', 3000);
+                    } else {
+                        errorNotification.style.display = 'block';
+                        setTimeout(() => errorNotification.style.display = 'none', 3000);
+                    }
+                }).catch(error => {
+                    spinner.style.display = 'none'; // Hide spinner after upload
+                    errorNotification.style.display = 'block';
+                    setTimeout(() => errorNotification.style.display = 'none', 3000);
+                    console.error('Error uploading image:', error);
+                });
+            }
+        });
+
+        // Start the camera when the page loads
+        window.addEventListener('load', startCamera);
+    </script>
+</body>
+</html>
+``
